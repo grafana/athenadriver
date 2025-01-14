@@ -21,7 +21,6 @@
 package athenadriver
 
 import (
-	"fmt"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -230,7 +229,7 @@ func (c *Config) SetWorkGroup(w *Workgroup) error {
 	}
 	// FIXME: this String() method has been removed and the Prettify method it calls is aws-sdk-go-v2/internal
 	//c.values.Set("workgroupConfig", w.Config.String())
-	c.values.Set("workgroupConfig", fmt.Sprintf("%+v", w.Config))
+	c.values.Set("workgroupConfig", Prettify(w.Config))
 	return nil
 }
 
