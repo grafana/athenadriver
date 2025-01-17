@@ -1,5 +1,10 @@
 package athenadriver
 
+// This file was copied from https://github.com/aws/aws-sdk-go/blob/e1db430efbf87c6fd64a01c3330ad7df794b8847/aws/awsutil/prettify.go
+
+// Copyright 2015 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Licensed under the Apache 2.0 license: https://github.com/aws/aws-sdk-go/blob/e1db430efbf87c6fd64a01c3330ad7df794b8847/LICENSE.txt
+
 import (
 	"bytes"
 	"fmt"
