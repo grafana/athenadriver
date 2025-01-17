@@ -23,19 +23,19 @@ package athenadriver
 import (
 	"context"
 	"github.com/aws/aws-sdk-go-v2/aws"
-	v2athena "github.com/aws/aws-sdk-go-v2/service/athena"
-	v2athenatypes "github.com/aws/aws-sdk-go-v2/service/athena/types"
+	"github.com/aws/aws-sdk-go-v2/service/athena"
+	athenatypes "github.com/aws/aws-sdk-go-v2/service/athena/types"
 )
 
 // Workgroup is a wrapper of Athena Workgroup.
 type Workgroup struct {
 	Name   string
-	Config *v2athenatypes.WorkGroupConfiguration
+	Config *athenatypes.WorkGroupConfiguration
 	Tags   *WGTags
 }
 
 // NewDefaultWG is to create new default Workgroup.
-func NewDefaultWG(name string, config *v2athenatypes.WorkGroupConfiguration, tags *WGTags) *Workgroup {
+func NewDefaultWG(name string, config *athenatypes.WorkGroupConfiguration, tags *WGTags) *Workgroup {
 	wg := Workgroup{
 		Name:   name,
 		Config: config,
@@ -52,7 +52,7 @@ func NewDefaultWG(name string, config *v2athenatypes.WorkGroupConfiguration, tag
 }
 
 // NewWG is to create a new Workgroup.
-func NewWG(name string, config *v2athenatypes.WorkGroupConfiguration, tags *WGTags) *Workgroup {
+func NewWG(name string, config *athenatypes.WorkGroupConfiguration, tags *WGTags) *Workgroup {
 	return &Workgroup{
 		Name:   name,
 		Config: config,
@@ -61,12 +61,12 @@ func NewWG(name string, config *v2athenatypes.WorkGroupConfiguration, tags *WGTa
 }
 
 // getWG is to get Athena Workgroup from AWS remotely.
-func getWG(ctx context.Context, client AthenaClient, Name string) (*v2athenatypes.WorkGroup, error) {
+func getWG(ctx context.Context, client AthenaClient, Name string) (*athenatypes.WorkGroup, error) {
 	if client == nil {
 		return nil, ErrAthenaNilClient
 	}
 	getWorkGroupOutput, err := client.GetWorkGroup(ctx,
-		&v2athena.GetWorkGroupInput{
+		&athena.GetWorkGroupInput{
 			WorkGroup: aws.String(Name),
 		})
 	if err != nil {
@@ -80,12 +80,12 @@ func (w *Workgroup) CreateWGRemotely(ctx context.Context, athenaClient AthenaCli
 	tags := w.Tags.Get()
 	var err error
 	if len(tags) == 0 {
-		_, err = athenaClient.CreateWorkGroup(ctx, &v2athena.CreateWorkGroupInput{
+		_, err = athenaClient.CreateWorkGroup(ctx, &athena.CreateWorkGroupInput{
 			Configuration: w.Config,
 			Name:          aws.String(w.Name),
 		})
 	} else {
-		_, err = athenaClient.CreateWorkGroup(ctx, &v2athena.CreateWorkGroupInput{
+		_, err = athenaClient.CreateWorkGroup(ctx, &athena.CreateWorkGroupInput{
 			Configuration: w.Config,
 			Name:          aws.String(w.Name),
 			Tags:          w.Tags.Get(),

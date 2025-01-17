@@ -8,7 +8,9 @@ require (
 	github.com/DATA-DOG/go-sqlmock v1.4.1
 	github.com/aws/aws-sdk-go-v2 v1.32.7
 	github.com/aws/aws-sdk-go-v2/config v1.28.8
+	github.com/aws/aws-sdk-go-v2/credentials v1.17.49
 	github.com/aws/aws-sdk-go-v2/service/athena v1.49.2
+	github.com/aws/smithy-go v1.22.1
 	github.com/cactus/go-statsd-client/statsd v0.0.0-20200423205355-cb0885a1018c
 	github.com/jedib0t/go-pretty/v6 v6.2.7
 	github.com/pkg/errors v0.9.1 // indirect
@@ -18,11 +20,6 @@ require (
 	go.uber.org/config v1.4.0
 	go.uber.org/fx v1.12.0
 	go.uber.org/zap v1.15.0
-)
-
-require (
-	github.com/aws/aws-sdk-go-v2/credentials v1.17.49
-	github.com/aws/smithy-go v1.22.1
 )
 
 require (

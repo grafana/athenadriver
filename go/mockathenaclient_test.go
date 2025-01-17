@@ -23,8 +23,9 @@ package athenadriver
 import (
 	"context"
 	"fmt"
+	awshttp "github.com/aws/aws-sdk-go-v2/aws/transport/http"
 	athenatypes "github.com/aws/aws-sdk-go-v2/service/athena/types"
-	"github.com/aws/smithy-go"
+	smithyhttp "github.com/aws/smithy-go/transport/http"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/service/athena"
@@ -187,13 +188,11 @@ func (m *mockAthenaClient) StartQueryExecution(_ context.Context, s *athena.Star
 	}
 	if *s.QueryString == "FAILED_AFTER_GETQID2" {
 		qid := "FAILED_AFTER_GETQID_123"
+		smithyErr := &smithyhttp.ResponseError{Err: fmt.Errorf("FAILED_AFTER_GETQID_FAILED")}
+		awsErr := &awshttp.ResponseError{smithyErr, "unk"}
 		return &athena.StartQueryExecutionOutput{
-				QueryExecutionId: &qid,
-			}, &smithy.OperationError{
-				ServiceID:     athena.ServiceID,
-				OperationName: "StartQueryExecution",
-				Err:           fmt.Errorf("FAILED_AFTER_GETQID_FAILED"),
-			}
+			QueryExecutionId: &qid,
+		}, awsErr
 	}
 	return nil, nil
 }

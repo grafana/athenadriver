@@ -83,11 +83,12 @@ func TestSQLConnector_Connect_NewSessionFail(t *testing.T) {
 		tracer: NewDefaultObservability(testConf),
 	}
 	conn, err := connector.Connect(context.Background())
+	tx, err := conn.Begin()
 
 	os.Unsetenv("AWS_SDK_LOAD_CONFIG")
 	os.Unsetenv("AWS_STS_REGIONAL_ENDPOINTS")
 	assert.NotNil(t, err)
-	assert.Nil(t, conn)
+	assert.Nil(t, tx)
 }
 
 func TestSQLConnector_Connect_NewSession_AWS_SDK_LOAD_CONFIG_true(t *testing.T) {
@@ -101,7 +102,6 @@ func TestSQLConnector_Connect_NewSession_AWS_SDK_LOAD_CONFIG_true(t *testing.T) 
 	conn, err := connector.Connect(context.Background())
 
 	os.Unsetenv("AWS_SDK_LOAD_CONFIG")
-	os.Unsetenv("AWS_STS_REGIONAL_ENDPOINTS")
 	assert.Nil(t, err)
 	assert.NotNil(t, conn)
 }
@@ -118,9 +118,9 @@ func TestSQLConnector_Connect_NewSession_AWS_SDK_LOAD_CONFIG_true_AWSProfile_Set
 	conn, err := connector.Connect(context.Background())
 
 	os.Unsetenv("AWS_SDK_LOAD_CONFIG")
-	os.Unsetenv("AWS_STS_REGIONAL_ENDPOINTS")
-	assert.Nil(t, err)
-	assert.NotNil(t, conn)
+	// In aws-sdk-go-v2 you cannot load a nonexistent profile
+	assert.NotNil(t, err)
+	assert.Nil(t, conn)
 }
 
 func TestSQLConnector_Connect_NewSession_AWS_SDK_LOAD_CONFIG_false(t *testing.T) {
@@ -134,7 +134,6 @@ func TestSQLConnector_Connect_NewSession_AWS_SDK_LOAD_CONFIG_false(t *testing.T)
 	conn, err := connector.Connect(context.Background())
 
 	os.Unsetenv("AWS_SDK_LOAD_CONFIG")
-	os.Unsetenv("AWS_STS_REGIONAL_ENDPOINTS")
 	assert.Nil(t, err)
 	assert.NotNil(t, conn)
 }

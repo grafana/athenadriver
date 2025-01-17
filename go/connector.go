@@ -23,7 +23,6 @@ package athenadriver
 import (
 	"context"
 	"database/sql/driver"
-	credentials2 "github.com/aws/aws-sdk-go-v2/credentials"
 	"os"
 	"strconv"
 	"time"
@@ -33,6 +32,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/athena"
 )
 
@@ -94,7 +94,7 @@ func (c *SQLConnector) Connect(ctx context.Context) (driver.Conn, error) {
 			}
 		}
 	} else if c.config.GetAccessID() != "" {
-		staticCredentials := credentials2.NewStaticCredentialsProvider(c.config.GetAccessID(),
+		staticCredentials := credentials.NewStaticCredentialsProvider(c.config.GetAccessID(),
 			c.config.GetSecretAccessKey(),
 			c.config.GetSessionToken())
 		awsCfg = aws.Config{

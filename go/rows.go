@@ -32,8 +32,8 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	v2athena "github.com/aws/aws-sdk-go-v2/service/athena"
-	v2athenatypes "github.com/aws/aws-sdk-go-v2/service/athena/types"
+	"github.com/aws/aws-sdk-go-v2/service/athena"
+	athenatypes "github.com/aws/aws-sdk-go-v2/service/athena/types"
 )
 
 // Rows defines rows in AWS Athena ResultSet.
@@ -42,7 +42,7 @@ type Rows struct {
 	ctx             context.Context
 	queryID         string
 	reachedLastPage bool
-	ResultOutput    *v2athena.GetQueryResultsOutput
+	ResultOutput    *athena.GetQueryResultsOutput
 	config          *Config
 	tracer          *DriverTracer
 	pageCount       int64
@@ -133,7 +133,7 @@ func (r *Rows) Next(dest []driver.Value) error {
 func (r *Rows) fetchNextPage(token *string) error {
 	var err error
 	r.ResultOutput, err = r.athena.GetQueryResults(r.ctx,
-		&v2athena.GetQueryResultsInput{
+		&athena.GetQueryResultsInput{
 			QueryExecutionId: aws.String(r.queryID),
 			NextToken:        token,
 		})
@@ -187,8 +187,8 @@ func (r *Rows) fetchNextPage(token *string) error {
 				if *r.ResultOutput.ResultSet.ResultSetMetadata.ColumnInfo[0].Name == "rows" {
 					// For DML's INSERT INTO, DDL's CTAS
 					updateCount := strconv.FormatInt(*r.ResultOutput.UpdateCount, 10)
-					rData := v2athenatypes.Datum{VarCharValue: &updateCount}
-					aRow := v2athenatypes.Row{Data: []v2athenatypes.Datum{rData}}
+					rData := athenatypes.Datum{VarCharValue: &updateCount}
+					aRow := athenatypes.Row{Data: []athenatypes.Datum{rData}}
 					r.ResultOutput.ResultSet.Rows = append(r.ResultOutput.ResultSet.Rows, aRow)
 				}
 			}
@@ -235,7 +235,7 @@ func (r *Rows) Close() error {
 }
 
 // convertRow is to convert data from Athena type to Golang SQL type and put them into an array of driver.Value.
-func (r *Rows) convertRow(columns []v2athenatypes.ColumnInfo, rdata []v2athenatypes.Datum, ret []driver.Value,
+func (r *Rows) convertRow(columns []athenatypes.ColumnInfo, rdata []athenatypes.Datum, ret []driver.Value,
 	driverConfig *Config) error {
 	for i, val := range rdata {
 		value, err := r.athenaTypeToGoType(columns[i], val.VarCharValue, driverConfig)
@@ -264,7 +264,7 @@ func (r *Rows) convertRow(columns []v2athenatypes.ColumnInfo, rdata []v2athenaty
 // json is also undocumented above, but appears here https://docs.aws.amazon.com/athena/latest/ug/querying-JSON.html
 // The full list is here: https://prestodb.io/docs/0.172/language/types.html
 // Include ipaddress for forward compatibility.
-func (r *Rows) athenaTypeToGoType(columnInfo v2athenatypes.ColumnInfo, rawValue *string, driverConfig *Config) (interface{}, error) {
+func (r *Rows) athenaTypeToGoType(columnInfo athenatypes.ColumnInfo, rawValue *string, driverConfig *Config) (interface{}, error) {
 	if maskedValue, masked := driverConfig.CheckColumnMasked(*columnInfo.Name); masked { // "comma ok" idiom
 		return maskedValue, nil
 	}

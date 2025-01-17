@@ -26,6 +26,7 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
+	awshttp "github.com/aws/aws-sdk-go-v2/aws/transport/http"
 	"strconv"
 	"strings"
 	"time"
@@ -33,7 +34,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	awshttp "github.com/aws/aws-sdk-go-v2/aws/transport/http"
 	"github.com/aws/aws-sdk-go-v2/service/athena"
 	athenatypes "github.com/aws/aws-sdk-go-v2/service/athena/types"
 )
@@ -418,7 +418,6 @@ func (c *Connection) QueryContext(ctx context.Context, query string, namedArgs [
 	})
 	if err != nil {
 		if pseudoCommand == PCGetQID {
-			// FIXME: what is the correct error here?
 			var re *awshttp.ResponseError
 			if errors.As(err, &re) {
 				return c.getHeaderlessSingleRowResultPage(ctx, re.ServiceRequestID())
