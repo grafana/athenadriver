@@ -21,10 +21,10 @@
 package athenadriver
 
 import (
+	"github.com/stretchr/testify/assert"
 	"net/url"
 	"testing"
 	"time"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestAthenaConfig(t *testing.T) {
@@ -216,7 +216,7 @@ func TestConfig_GetWorkgroup(t *testing.T) {
 	err := testConf.SetWorkGroup(wg)
 	assert.Nil(t, err)
 	w := testConf.GetWorkgroup()
-	assert.Nil(t, w.Tags)
+	assert.Empty(t, w.Tags.tags)
 }
 
 func TestConfig_SetReadOnly(t *testing.T) {
