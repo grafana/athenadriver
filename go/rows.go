@@ -31,15 +31,14 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/aws/aws-sdk-go/service/athena/athenaiface"
-
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/athena"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/athena"
+	athenatypes "github.com/aws/aws-sdk-go-v2/service/athena/types"
 )
 
 // Rows defines rows in AWS Athena ResultSet.
 type Rows struct {
-	athena          athenaiface.AthenaAPI
+	athena          AthenaClient
 	ctx             context.Context
 	queryID         string
 	reachedLastPage bool
@@ -50,10 +49,10 @@ type Rows struct {
 }
 
 // NewNonOpsRows is to create a new Rows.
-func NewNonOpsRows(ctx context.Context, athenaAPI athenaiface.AthenaAPI, queryID string, driverConfig *Config,
+func NewNonOpsRows(ctx context.Context, client AthenaClient, queryID string, driverConfig *Config,
 	obs *DriverTracer) (*Rows, error) {
 	r := Rows{
-		athena:    athenaAPI,
+		athena:    client,
 		ctx:       ctx,
 		queryID:   queryID,
 		config:    driverConfig,
@@ -64,10 +63,10 @@ func NewNonOpsRows(ctx context.Context, athenaAPI athenaiface.AthenaAPI, queryID
 }
 
 // NewRows is to create a new Rows.
-func NewRows(ctx context.Context, athenaAPI athenaiface.AthenaAPI, queryID string, driverConfig *Config,
+func NewRows(ctx context.Context, client AthenaClient, queryID string, driverConfig *Config,
 	obs *DriverTracer) (*Rows, error) {
 	r := Rows{
-		athena:    athenaAPI,
+		athena:    client,
 		ctx:       ctx,
 		queryID:   queryID,
 		config:    driverConfig,
@@ -133,7 +132,7 @@ func (r *Rows) Next(dest []driver.Value) error {
 // fetchNextPage is to get next result set page with a specific token.
 func (r *Rows) fetchNextPage(token *string) error {
 	var err error
-	r.ResultOutput, err = r.athena.GetQueryResultsWithContext(r.ctx,
+	r.ResultOutput, err = r.athena.GetQueryResults(r.ctx,
 		&athena.GetQueryResultsInput{
 			QueryExecutionId: aws.String(r.queryID),
 			NextToken:        token,
@@ -188,9 +187,9 @@ func (r *Rows) fetchNextPage(token *string) error {
 				if *r.ResultOutput.ResultSet.ResultSetMetadata.ColumnInfo[0].Name == "rows" {
 					// For DML's INSERT INTO, DDL's CTAS
 					updateCount := strconv.FormatInt(*r.ResultOutput.UpdateCount, 10)
-					rData := athena.Datum{VarCharValue: &updateCount}
-					aRow := athena.Row{Data: []*athena.Datum{&rData}}
-					r.ResultOutput.ResultSet.Rows = append(r.ResultOutput.ResultSet.Rows, &aRow)
+					rData := athenatypes.Datum{VarCharValue: &updateCount}
+					aRow := athenatypes.Row{Data: []athenatypes.Datum{rData}}
+					r.ResultOutput.ResultSet.Rows = append(r.ResultOutput.ResultSet.Rows, aRow)
 				}
 			}
 		}
@@ -202,7 +201,7 @@ func (r *Rows) fetchNextPage(token *string) error {
 		i := 0
 		if len(ci) > 0 && len(rs.Rows) > 0 && len(rs.Rows[0].Data) > 0 && len(rs.Rows[0].Data) == len(ci) {
 			for ; i < len(ci); i++ {
-				if rs.Rows[0].Data[i] == nil || rs.Rows[0].Data[i].VarCharValue == nil {
+				if rs.Rows[0].Data[i].VarCharValue == nil {
 					break
 				}
 				if *ci[i].Name != *rs.Rows[0].Data[i].VarCharValue {
@@ -236,12 +235,9 @@ func (r *Rows) Close() error {
 }
 
 // convertRow is to convert data from Athena type to Golang SQL type and put them into an array of driver.Value.
-func (r *Rows) convertRow(columns []*athena.ColumnInfo, rdata []*athena.Datum, ret []driver.Value,
+func (r *Rows) convertRow(columns []athenatypes.ColumnInfo, rdata []athenatypes.Datum, ret []driver.Value,
 	driverConfig *Config) error {
 	for i, val := range rdata {
-		if val == nil {
-			return ErrAthenaNilDatum
-		}
 		value, err := r.athenaTypeToGoType(columns[i], val.VarCharValue, driverConfig)
 		if err != nil {
 			r.tracer.Log(ErrorLevel, "convertrow failed", zap.String("error", err.Error()))
@@ -268,7 +264,7 @@ func (r *Rows) convertRow(columns []*athena.ColumnInfo, rdata []*athena.Datum, r
 // json is also undocumented above, but appears here https://docs.aws.amazon.com/athena/latest/ug/querying-JSON.html
 // The full list is here: https://prestodb.io/docs/0.172/language/types.html
 // Include ipaddress for forward compatibility.
-func (r *Rows) athenaTypeToGoType(columnInfo *athena.ColumnInfo, rawValue *string, driverConfig *Config) (interface{}, error) {
+func (r *Rows) athenaTypeToGoType(columnInfo athenatypes.ColumnInfo, rawValue *string, driverConfig *Config) (interface{}, error) {
 	if maskedValue, masked := driverConfig.CheckColumnMasked(*columnInfo.Name); masked { // "comma ok" idiom
 		return maskedValue, nil
 	}

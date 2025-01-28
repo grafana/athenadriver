@@ -28,10 +28,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/athena"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/athena"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -329,82 +328,81 @@ func TestBuildExecutionParams(t *testing.T) {
 		name        string
 		inputArgs   []driver.Value
 		expectedErr error
-		expected    []*string
+		expected    []string
 	}{
 		{
 			name:        "No arguments",
 			inputArgs:   []driver.Value{},
 			expectedErr: nil,
-			expected:    []*string{},
+			expected:    []string{},
 		},
 		{
 			name:        "Bool",
 			inputArgs:   []driver.Value{true, false},
 			expectedErr: nil,
-			expected:    []*string{aws.String("1"), aws.String("0")},
+			expected:    []string{"1", "0"},
 		},
 		{
 			name:        "Zero-value time",
 			inputArgs:   []driver.Value{time.Time{}},
 			expectedErr: nil,
-			expected:    []*string{aws.String("'0000-00-00'")}, // Special-cased. Matches interpolateParams behavior.
+			expected:    []string{"'0000-00-00'"}, // Special-cased. Matches interpolateParams behavior.
 		},
 		{
 			// Like interpolateParams(), buildExecutionParams() adds an additional 500 nanoseconds.
 			name:        "501 nanoseconds is still < 1 microsecond", // From TestConnection_InterpolateParams_Bool
 			inputArgs:   []driver.Value{time.Time{}.Add(time.Nanosecond)},
 			expectedErr: nil,
-			expected:    []*string{aws.String("'0001-01-01 00:00:00'")}, // Matches interpolateParams behavior.
+			expected:    []string{"'0001-01-01 00:00:00'"}, // Matches interpolateParams behavior.
 		},
 		{
 			name:        "For non-zero-value time.Times, Date and time are present, even if time is zero-value",
 			inputArgs:   []driver.Value{testTime},
 			expectedErr: nil,
-			expected:    []*string{aws.String("'2024-07-01 00:00:00'")},
+			expected:    []string{"'2024-07-01 00:00:00'"},
 		},
 		{
 			name:        "Datetime with Microseconds",
 			inputArgs:   []driver.Value{testTimeMicro},
 			expectedErr: nil,
-			expected:    []*string{aws.String("'2024-07-02 01:02:03.123456'")},
+			expected:    []string{"'2024-07-02 01:02:03.123456'"},
 		},
 		{
 			name:        "Byte Slice - Caller must use utils.go/FormatBytes before passing in query args",
 			inputArgs:   []driver.Value{[]byte{'0'}},
 			expectedErr: nil,
-			expected:    []*string{aws.String("0")}, // No change
+			expected:    []string{"0"}, // No change
 		},
 		{
 			name:        "Byte Slice - After FormatBytes",
 			inputArgs:   []driver.Value{FormatBytes([]byte{'0'})},
 			expectedErr: nil,
-			expected:    []*string{aws.String("_binary'0'")},
+			expected:    []string{"_binary'0'"},
 		},
 		{
 			name:        "String - Caller must use utils.go/FormatString before passing in query args",
 			inputArgs:   []driver.Value{"This is a string"},
 			expectedErr: nil,
-			expected:    []*string{aws.String("This is a string")}, // No change
+			expected:    []string{"This is a string"}, // No change
 		},
 		{
 			name:        "String - After FormatString",
 			inputArgs:   []driver.Value{FormatString("This is a string with ' single quotes and \n chars")},
 			expectedErr: nil,
-			expected:    []*string{aws.String("'This is a string with '' single quotes and \\n chars'")},
+			expected:    []string{"'This is a string with '' single quotes and \\n chars'"},
 		},
 		{
 			name:        "Nil -> NULL",
 			inputArgs:   []driver.Value{nil},
 			expectedErr: nil,
-			expected:    []*string{aws.String("NULL")},
+			expected:    []string{"NULL"},
 		},
 		{
 			name: "Every supported type",
 			inputArgs: []driver.Value{int64(-10), uint64(42), 1.23, true, testTime, []byte("This is a slice of bytes"),
 				"This is a string"},
 			expectedErr: nil,
-			expected: []*string{aws.String("-10"), aws.String("42"), aws.String("1.23"), aws.String("1"),
-				aws.String("'2024-07-01 00:00:00'"), aws.String("This is a slice of bytes"), aws.String("This is a string")},
+			expected:    []string{"-10", "42", "1.23", "1", "'2024-07-01 00:00:00'", "This is a slice of bytes", "This is a string"},
 		},
 	}
 	c := createTestConnection(t)
@@ -433,19 +431,17 @@ func TestCheckNamedValue(t *testing.T) {
 func createTestConnection(t *testing.T) *Connection {
 	t.Parallel()
 	testConf := NewNoOpsConfig()
-	staticCredentials := credentials.NewStaticCredentials(testConf.GetAccessID(),
+	staticCredentials := credentials.NewStaticCredentialsProvider(testConf.GetAccessID(),
 		testConf.GetSecretAccessKey(),
 		testConf.GetSessionToken())
-	awsConfig := &aws.Config{
-		Region:      aws.String(testConf.GetRegion()),
+	awsConfig := aws.Config{
+		Region:      testConf.GetRegion(),
 		Credentials: staticCredentials,
 	}
-	awsAthenaSession, err := session.NewSession(awsConfig)
-	assert.Nil(t, err)
-	athenaAPI := athena.New(awsAthenaSession)
+	athenaClient := athena.NewFromConfig(awsConfig)
 	c := &Connection{
-		athenaAPI: athenaAPI,
-		connector: NoopsSQLConnector(),
+		athenaClient: athenaClient,
+		connector:    NoopsSQLConnector(),
 	}
 	return c
 }
@@ -453,8 +449,8 @@ func createTestConnection(t *testing.T) *Connection {
 func TestConnection_QueryContext2(t *testing.T) {
 	t.Parallel()
 	c := &Connection{
-		athenaAPI: newMockAthenaClient(),
-		connector: NoopsSQLConnector(),
+		athenaClient: newMockAthenaClient(),
+		connector:    NoopsSQLConnector(),
 	}
 	driverRows, err := c.QueryContext(context.Background(), "StartQueryExecution_nil_error",
 		[]driver.NamedValue{})
@@ -476,8 +472,8 @@ func TestConnection_QueryContext2(t *testing.T) {
 func TestConnection_QueryContext3(t *testing.T) {
 	t.Parallel()
 	c := &Connection{
-		athenaAPI: newMockAthenaClient(),
-		connector: NoopsSQLConnector(),
+		athenaClient: newMockAthenaClient(),
+		connector:    NoopsSQLConnector(),
 	}
 	var s3bucket string = "s3://fake-query-results-arbitrary-bucket/"
 
@@ -506,8 +502,8 @@ func TestConnection_QueryContext4(t *testing.T) {
 	nm := newMockAthenaClient()
 	nm.GetWGStatus = true
 	c := &Connection{
-		athenaAPI: nm,
-		connector: NoopsSQLConnector(),
+		athenaClient: nm,
+		connector:    NoopsSQLConnector(),
 	}
 	var s3bucket string = "s3://fake-query-results-arbitrary-bucket/"
 
@@ -539,8 +535,8 @@ func TestConnection_QueryContext5(t *testing.T) {
 	nm.WGDisabled = true
 
 	c := &Connection{
-		athenaAPI: nm,
-		connector: NoopsSQLConnector(),
+		athenaClient: nm,
+		connector:    NoopsSQLConnector(),
 	}
 	var s3bucket string = "s3://fake-query-results-arbitrary-bucket/"
 
@@ -566,8 +562,8 @@ func TestConnection_QueryContext6(t *testing.T) {
 	t.Parallel()
 	nm := newMockAthenaClient()
 	c := &Connection{
-		athenaAPI: nm,
-		connector: NoopsSQLConnector(),
+		athenaClient: nm,
+		connector:    NoopsSQLConnector(),
 	}
 	var s3bucket string = "s3://fake-query-results-arbitrary-bucket/"
 
@@ -707,8 +703,8 @@ func createConnectionFixture() *Connection {
 	rand.Seed(int64(time.Now().Nanosecond()))
 	nm := newMockAthenaClient()
 	c := &Connection{
-		athenaAPI: nm,
-		connector: NoopsSQLConnector(),
+		athenaClient: nm,
+		connector:    NoopsSQLConnector(),
 	}
 	var s3bucket string = "s3://fake-query-results-arbitrary-bucket/"
 	wgTags := NewWGTags()
@@ -731,8 +727,8 @@ func createConnectionFixture() *Connection {
 func TestMoneyWise(t *testing.T) {
 	t.Parallel()
 	c := &Connection{
-		athenaAPI: newMockAthenaClient(),
-		connector: NoopsSQLConnector(),
+		athenaClient: newMockAthenaClient(),
+		connector:    NoopsSQLConnector(),
 	}
 	var s3bucket string = "s3://fake-query-results-arbitrary-bucket/"
 
@@ -779,8 +775,8 @@ func TestMoneyWise(t *testing.T) {
 func TestConnection_CachedQuery(t *testing.T) {
 	t.Parallel()
 	c := &Connection{
-		athenaAPI: newMockAthenaClient(),
-		connector: NoopsSQLConnector(),
+		athenaClient: newMockAthenaClient(),
+		connector:    NoopsSQLConnector(),
 	}
 	var s3bucket string = "s3://fake-query-results-arbitrary-bucket/"
 	testConf := NewNoOpsConfig()
@@ -801,8 +797,8 @@ func TestConnection_CachedQuery(t *testing.T) {
 func Test_PseudoCommand(t *testing.T) {
 	t.Parallel()
 	c := &Connection{
-		athenaAPI: newMockAthenaClient(),
-		connector: NoopsSQLConnector(),
+		athenaClient: newMockAthenaClient(),
+		connector:    NoopsSQLConnector(),
 	}
 	var s3bucket string = "s3://fake-query-results-arbitrary-bucket/"
 
