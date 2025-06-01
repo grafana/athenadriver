@@ -976,9 +976,9 @@ import (
 	"log"
 	"time"
 	"github.com/cactus/go-statsd-client/statsd"
-	tallystatsd "github.com/uber-go/tally/statsd"
+	tallystatsd "github.com/uber-go/tally/v4/statsd"
 	drv "github.com/uber/athenadriver/go"
-	"github.com/uber-go/tally"
+	"github.com/uber-go/tally/v4"
 )
 
 func newScope() (tally.Scope, io.Closer) {

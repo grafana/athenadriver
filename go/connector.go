@@ -28,7 +28,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/uber-go/tally"
+	"github.com/uber-go/tally/v4"
 	"go.uber.org/zap"
 
 	"github.com/aws/aws-sdk-go/aws"

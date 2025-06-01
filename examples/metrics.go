@@ -28,9 +28,9 @@ import (
 	"time"
 
 	"github.com/cactus/go-statsd-client/statsd"
-	tallystatsd "github.com/uber-go/tally/statsd"
+	tallystatsd "github.com/uber-go/tally/v4/statsd"
 
-	"github.com/uber-go/tally"
+	"github.com/uber-go/tally/v4"
 	secret "github.com/uber/athenadriver/examples/constants"
 	drv "github.com/uber/athenadriver/go"
 )
