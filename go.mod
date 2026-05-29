@@ -1,7 +1,7 @@
 module github.com/grafana/athenadriver
 
 go 1.26.3
-toolchain go1.26.3
+
 require (
 	github.com/DATA-DOG/go-sqlmock v1.4.1
 	github.com/aws/aws-sdk-go-v2 v1.32.7
@@ -13,6 +13,7 @@ require (
 	github.com/jedib0t/go-pretty/v6 v6.2.7
 	github.com/stretchr/testify v1.9.0
 	github.com/uber-go/tally/v4 v4.1.17
+	github.com/uber/athenadriver v1.1.15
 	github.com/xwb1989/sqlparser v0.0.0-20180606152119-120387863bf2
 	go.uber.org/config v1.4.0
 	go.uber.org/fx v1.12.0
@@ -20,6 +21,7 @@ require (
 )
 
 require (
+	github.com/aws/aws-sdk-go v1.37.32 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.22 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.26 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.26 // indirect
@@ -32,10 +34,12 @@ require (
 	github.com/cactus/go-statsd-client/v5 v5.0.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/golang/mock v1.6.0 // indirect
+	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/mattn/go-runewidth v0.0.13 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/twmb/murmur3 v1.1.8 // indirect
+	github.com/uber-go/tally v3.3.17+incompatible // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/dig v1.9.0 // indirect
 	go.uber.org/multierr v1.5.0 // indirect
